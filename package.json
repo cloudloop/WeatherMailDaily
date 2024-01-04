@@ -1,0 +1,25 @@
+{
+  "name": "weathermaildaily",
+  "version": "1.0.0",
+  "description": "Sending a daily email to selected recipients with todays weather forecast and clothing recommendation",
+  "main": "app.js",
+  "scripts": {
+    "app": "node app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cloudloop/WeatherMailDaily.git"
+  },
+  "keywords": [
+    "weather",
+    "email",
+    "daily"
+  ],
+  "author": "Axel Ingo",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/cloudloop/WeatherMailDaily/issues"
+  },
+  "homepage": "https://github.com/cloudloop/WeatherMailDaily#readme"
+}
