@@ -38,7 +38,31 @@ async function fetchWeatherData(lat = defaultLat, lon = defaultLon) {
 
 // Function to send email
 async function sendWeatherEmail(weatherData) {
-    // Configure Nodemailer and send email with weatherData
+    // Create a Nodemailer transporter using Gmail and environment variables
+    let transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: process.env.GMAIL_USER,
+            pass: process.env.GMAIL_PASS
+        }
+    });
+
+    // Email options
+    let mailOptions = {
+        from: process.env.GMAIL_USER,
+        to: 'axel.k.ingo+weather@gmail.com',
+        subject: 'Today\'s Weather',
+        html: '<h1>Weather Report</h1><p>Here is today\'s weather...</p>' // Replace with actual weatherData
+        // You can format weatherData to be displayed as needed
+    };
+
+    // Send the email
+    try {
+        let info = await transporter.sendMail(mailOptions);
+        console.log('Email sent: ' + info.response);
+    } catch (error) {
+        console.error('Error sending email:', error);
+    }
 };
 
 // Scheduled task with cron. Bypassing step until weather function is correctly working
@@ -99,17 +123,27 @@ weatherData.then(data => {
     temperature_Array = Array[1];
     windDirections_Array = Array[2];
     windSpeed_Array = Array[3];
-    console.log(times_Array, temperature_Array, windDirections_Array, windSpeed_Array)
+    // console.log(times_Array, temperature_Array, windDirections_Array, windSpeed_Array)
 
 }).catch(error => {
     console.error('Error:', error);
 });
 
 
-
+const email = sendWeatherEmail();
 // cron.schedule("*/10 * * * * *", function() {
 //     console.log("running a task every 10 second");
 //   });
+
+
+
+
+
+
+
+
+
+
 
 
 // API endpoint for all weather data
