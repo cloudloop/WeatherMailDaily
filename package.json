@@ -23,6 +23,7 @@
   },
   "homepage": "https://github.com/cloudloop/WeatherMailDaily#readme",
   "dependencies": {
+    "chroma-js": "^2.4.2",
     "dotenv": "^16.3.1"
   }
 }

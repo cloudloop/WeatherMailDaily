@@ -2,6 +2,10 @@ const express = require('express');
 const axios = require('axios');
 const nodemailer = require('nodemailer');
 const cron = require('node-cron');
+const fs = require('fs');
+const path = require('path');
+const chroma = require("chroma-js");
+
 
 
 const app = express();
@@ -18,11 +22,11 @@ const defaultLat = 59.3293;
 const defaultLon = 18.0686;
 
 // Weather fetching function for coordinates
-async function fetchWeatherData(lat = defaultLat, lon = defaultLon) {
+async function fetchWeatherData(lat = 63, lon = 10) {
     try {
         const response = await axios.get(`https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${lat}&lon=${lon}`, {
             headers: {
-                'User-Agent': 'Axel Ingo/WeatherMailDaily (https://github.com/cloudloop/WeatherMailDaily)' // Replace with your actual app info
+                'User-Agent': 'Axel Ingo/WeatherMailDaily (https://github.com/cloudloop/WeatherMailDaily)' 
             }
         });
 
@@ -36,15 +40,70 @@ async function fetchWeatherData(lat = defaultLat, lon = defaultLon) {
     }
 }
 // Function to create the email weather graph
-async function createGraph(data) {
-    // URL to Chart API that could work
+async function createGraph(tempdata,raindata) {
+    // URL to Chart API that could work for temp/wind
+    // https://quickchart.io/chart/render/zm-cb1f842c-bb20-4ab8-9626-f6bcebbf466b
+    // or for temp/rain
+    // https://quickchart.io/chart/render/zm-7fe2df71-8a77-4735-a3a1-b443ac2150b8
+
+                                //     How to use it
+                                // Override the chart template by adding variables to your URL. For example, to override the first dataset, add numbers to data1:
+
+                                // https://quickchart.io/chart/render/zm-7fe2df71-8a77-4735-a3a1-b443ac2150b8?data1=50,40,30,20
+                                // To override chart labels, set labels:
+
+                                // https://quickchart.io/chart/render/zm-7fe2df71-8a77-4735-a3a1-b443ac2150b8?labels=Q1,Q2,Q3,Q4
+                                // To override the chart title, set title:
+
+                                // https://quickchart.io/chart/render/zm-7fe2df71-8a77-4735-a3a1-b443ac2150b8?title=An interesting chart
+                                // You can join multiple overrides by using &:
+
+                                // https://quickchart.io/chart/render/zm-7fe2df71-8a77-4735-a3a1-b443ac2150b8?title=An interesting chart&labels=Q1,Q2,Q3,Q4&data1=50,40,30,20
     return
 }
 
-// Function to send email
-async function sendWeatherEmail(weatherData) {
+async function createChartUrl() {
+    try {
+        const timeResponse = await axios.get('http://localhost:3000/time');
+        const tempResponse = await axios.get('http://localhost:3000/temp');
+        const rainResponse = await axios.get('http://localhost:3000/rain');
 
-    await createGraph(weatherData);
+        const labels = timeResponse.data.join(',');
+        const data1 = tempResponse.data.join(',');
+        const data2 = rainResponse.data.join(',');
+
+        // Creating color code for temperature
+        let sum = tempResponse.data.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+        let average = sum / tempResponse.data.length;
+        let colorScaleValue = 
+        scale = chroma.scale(['blue', 'red']);
+        borderColor = scale(colorScaleValue).hex(); // #FF7F7F
+
+        const chartUrl = `https://quickchart.io/chart/render/zm-7fe2df71-8a77-4735-a3a1-b443ac2150b8?labels=${labels}&data1=${data1}&data2=${data2}`;
+        
+        return chartUrl;
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        throw error;
+    }
+}
+
+async function saveChartImage() {
+    const chartUrl = await createChartUrl();
+    const response = await axios({
+        method: 'get',
+        url: chartUrl,
+        responseType: 'stream'
+    });
+
+    const path = './images/myDynamicChart.png';
+    response.data.pipe(fs.createWriteStream(path));
+}
+
+// Function to send email
+async function sendWeatherEmail() {
+
+    await saveChartImage();
     // Create a Nodemailer transporter using Gmail and environment variables
     let transporter = nodemailer.createTransport({
         service: 'gmail',
@@ -86,7 +145,7 @@ async function sendWeatherEmail(weatherData) {
     `,
     attachments: [{
         filename: 'graph.jpeg',
-        path: './images/graph.jpeg',
+        path: './images/myDynamicChart.png',
         cid: 'unique@cid.example.com' // Same CID value as in the html field
     }]  // You can format weatherData to be displayed as needed
     };
@@ -177,6 +236,15 @@ weatherData.then(data => {
 
 
 // API endpoint for all weather data
+app.get('/weatherdata', (req, res) => {
+    weatherData.then((data) => {
+        res.json(data.properties.timeseries);
+    }).catch((error) => {
+        console.error('Error:', error);
+        res.status(500).send('Error fetching weather data');
+    });
+});
+
 app.get('/weather', (req, res) => {
     res.json({
         time: times_Array,
@@ -221,7 +289,7 @@ function sleep(ms) {
 app.listen(port, async() => {
     console.log(`Server is running on http://localhost:${port}`);
     try {
-        sleep(200).then(() => {sendWeatherEmail()}); // Ensure this function is defined as async
+        sleep(1500).then(() => {sendWeatherEmail(temperature_Array,rain_Array)}); // Ensure this function is defined as async
     } catch (error) {
         console.error('Error sending email:', error);
     }
