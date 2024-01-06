@@ -62,6 +62,15 @@ async function createGraph(tempdata,raindata) {
     return
 }
 
+async function getCurrentDate() {
+    let today = new Date();
+    let day = String(today.getDate()).padStart(2, '0');
+    let month = String(today.getMonth() + 1).padStart(2, '0'); // January is 0!
+    let year = today.getFullYear();
+
+    return day + '/' + month + '/' + year;
+}
+
 async function createChartUrl() {
     try {
         const timeResponse = await axios.get('http://localhost:3000/time');
@@ -78,8 +87,12 @@ async function createChartUrl() {
         let colorScaleValue = 
         scale = chroma.scale(['blue', 'red']);
         borderColor = scale(colorScaleValue).hex(); // #FF7F7F
+        console.log(`Chosen chart color: ${borderColor}`)
+        // borderColor1 set to ${borderColor}
 
-        const chartUrl = `https://quickchart.io/chart/render/zm-7fe2df71-8a77-4735-a3a1-b443ac2150b8?labels=${labels}&data1=${data1}&data2=${data2}`;
+        let todaysDate = await getCurrentDate();
+        chartTitle = `Todays Weather ${todaysDate}`;
+        const chartUrl = `https://quickchart.io/chart/render/zm-283d72a0-e994-4d58-9b25-5a4b4233ace0?title=$${chartTitle}&labels=${labels}&data1=${data1}&data2=${data2}`;
         
         return chartUrl;
     } catch (error) {
