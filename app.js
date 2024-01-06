@@ -71,6 +71,14 @@ async function getCurrentDate() {
     return day + '/' + month + '/' + year;
 }
 
+async function hexToRgba(hex, alpha = 0.2) {
+    let r = parseInt(hex.slice(1, 3), 16);
+    let g = parseInt(hex.slice(3, 5), 16);
+    let b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+
 async function createChartUrl() {
     try {
         const timeResponse = await axios.get('http://localhost:3000/time');
@@ -84,15 +92,16 @@ async function createChartUrl() {
         // Creating color code for temperature
         let sum = tempResponse.data.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
         let average = sum / tempResponse.data.length;
-        let colorScaleValue = 
+        let colorScaleValue = (average + 20)/55;
+        console.log(`Color Scale Value: ${colorScaleValue}`);      
         scale = chroma.scale(['blue', 'red']);
-        borderColor = scale(colorScaleValue).hex(); // #FF7F7F
-        console.log(`Chosen chart color: ${borderColor}`)
-        // borderColor1 set to ${borderColor}
-
+        let borderColor = scale(colorScaleValue).hex(); // #FF7F7F
+        console.log(`Chosen chart color: ${borderColor}`); // borderColor1 set to ${borderColor}
+        let backgroundColor = await hexToRgba(borderColor);
+        console.log(`Area color chosen: ${backgroundColor}`);
         let todaysDate = await getCurrentDate();
         chartTitle = `Todays Weather ${todaysDate}`;
-        const chartUrl = `https://quickchart.io/chart/render/zm-283d72a0-e994-4d58-9b25-5a4b4233ace0?title=$${chartTitle}&labels=${labels}&data1=${data1}&data2=${data2}`;
+        const chartUrl = `https://quickchart.io/chart/render/zm-283d72a0-e994-4d58-9b25-5a4b4233ace0?title=${encodeURIComponent(chartTitle)}&labels=${encodeURIComponent(labels)}&data1=${data1}&data2=${data2}&borderColor1=${encodeURIComponent(borderColor)}&backgroundColor1=${encodeURIComponent(backgroundColor)}`;
         
         return chartUrl;
     } catch (error) {
@@ -126,30 +135,64 @@ async function sendWeatherEmail() {
         }
     });
 
-    const timeResponse = await axios.get('http://localhost:3000/time');
-    const timeRes = timeResponse.data;
     const tempResponse = await axios.get('http://localhost:3000/temp');
     const tempRes = tempResponse.data;
+    const windResponse = await axios.get('http://localhost:3000/rain');
+    const windRes = windResponse.data;
+    const rainResponse = await axios.get('http://localhost:3000/rain');
+    const rainRes = rainResponse.data;
+
+
+    //Creating my HTML sendout variables:
+    const tempMin = Math.min(...tempRes);
+    const tempMax = Math.max(...tempRes);
+
+    const windSpeedMin = Math.min(...windRes); 
+    const windSpeedMax = Math.max(...windRes); 
+
+    const totalRainfall = rainRes.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
 
     // Email options
     let mailOptions = {
         from: process.env.GMAIL_USER,
-        to: 'axel.k.ingo+weather@gmail.com',
-        subject: 'Today\'s Weather',
+        to: 'axel.k.ingo@gmail.com; stina.sollander@gmail.com',
+        subject: 'Today\'s Weather Briefing',
         html: `
         <html>
             <head>
                 <title>Email Title</title>
             </head>
             <body>
-                <table width="100%" cellspacing="0" cellpadding="0" border="0">
-                    <tr>
-                        <td align="center" valign="top" style="background-color:#eeeeee;">
+                <table width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#eeeeee;">
+                    <tr colspan="3">
+                        <td align="center" valign="top">
                             <h1 style="color: #333333;">Weather Report</h1>
-                            <p style="color: #555555;">Details about the weather...</p>
-                            <p style="color: #777777;">${timeRes}, ${tempRes}</p>
-                            <!-- More content here -->
-                            <img src="cid:unique@cid.example.com">
+                        </td>
+                    </tr>
+                    <tr>
+                        <!-- Temperature Range Column -->
+                        <td width="33%" align="center" valign="top">
+                        <h2>Temperature Range</h2>
+                        <p style="color: blue;">Min: ${tempMin}°C</p>
+                        <p style="color: red;">Max: ${tempMax}°C</p>
+                    </td>
+
+                        <!-- Wind and Direction Column -->
+                        <td width="33%" align="center" valign="top">
+                            <h2>Wind</h2>
+                            <p>${windSpeedMin}-${windSpeedMax} m/s°</p>
+                        </td>
+
+                        <!-- Rain Column -->
+                        <td width="33%" align="center" valign="top">
+                            <h2>Rain</h2>
+                            <p>${totalRainfall} mm</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <!-- Full Width Image Row -->
+                        <td colspan="3">
+                            <img src="cid:unique@cid.example.com" style="width: 100%;">
                         </td>
                     </tr>
                 </table>
