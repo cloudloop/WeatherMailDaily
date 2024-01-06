@@ -9,7 +9,7 @@ const chroma = require("chroma-js");
 
 
 const app = express();
-const port = 3000;
+const port = parseInt(process.env.PORT) || 8080;
 require('dotenv').config();
 //Supress the https warning
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
