@@ -10,6 +10,7 @@ const chroma = require("chroma-js");
 
 const app = express();
 const port = parseInt(process.env.PORT) || 8080;
+const apiUrl = process.env.API_URL || 'http://localhost:8080';
 require('dotenv').config();
 //Supress the https warning
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -81,9 +82,9 @@ async function hexToRgba(hex, alpha = 0.2) {
 
 async function createChartUrl() {
     try {
-        const timeResponse = await axios.get('http://localhost:3000/time');
-        const tempResponse = await axios.get('http://localhost:3000/temp');
-        const rainResponse = await axios.get('http://localhost:3000/rain');
+        const timeResponse = await axios.get(`${apiUrl}/time`);
+        const tempResponse = await axios.get(`${apiUrl}/temp`);
+        const rainResponse = await axios.get(`${apiUrl}/rain`);
 
         const labels = timeResponse.data.join(',');
         const data1 = tempResponse.data.join(',');
@@ -135,11 +136,11 @@ async function sendWeatherEmail() {
         }
     });
 
-    const tempResponse = await axios.get('http://localhost:3000/temp');
+    const tempResponse = await axios.get(`${apiUrl}/temp`);
     const tempRes = tempResponse.data;
-    const windResponse = await axios.get('http://localhost:3000/rain');
+    const windResponse = await axios.get(`${apiUrl}/rain`);
     const windRes = windResponse.data;
-    const rainResponse = await axios.get('http://localhost:3000/rain');
+    const rainResponse = await axios.get(`${apiUrl}/rain`);
     const rainRes = rainResponse.data;
 
 
