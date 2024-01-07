@@ -180,8 +180,8 @@ async function sendWeatherEmail() {
     // Email options
     let mailOptions = {
         from: process.env.GMAIL_USER,
-        to: 'axel.k.ingo@gmail.com',
-        cc: 'stina.sollander@gmail.com',
+        to: 'marcus.lilliebjorn@outlook.com',
+        cc: 'axel.k.ingo@gmail.com',
         subject: `Today\'s Weather Briefing - ${todaysDate}`,
         html: `
         <html>
