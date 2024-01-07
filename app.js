@@ -10,7 +10,7 @@ const chroma = require("chroma-js");
 
 const app = express();
 const port = parseInt(process.env.PORT) || 8080;
-const apiUrl = process.env.API_URL || 'http://localhost:8080';
+const apiUrl = process.env.API_URL || 'http://localhost';
 require('dotenv').config();
 //Supress the https warning
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -82,9 +82,19 @@ async function hexToRgba(hex, alpha = 0.2) {
 
 async function createChartUrl() {
     try {
-        const timeResponse = await axios.get(`${apiUrl}/time`);
-        const tempResponse = await axios.get(`${apiUrl}/temp`);
-        const rainResponse = await axios.get(`${apiUrl}/rain`);
+        let timeResponse, tempResponse, rainResponse;
+        if (process.env.NODE_ENV === 'production') {
+            // Direct function calls
+            timeResponse = await axios.get(`${apiUrl}/time`);
+            tempResponse = await axios.get(`${apiUrl}/temp`);
+            rainResponse = await axios.get(`${apiUrl}/rain`);
+        } else {
+            // Axios API calls
+            timeResponse = await axios.get(`${apiUrl}:${port}/time`);
+            tempResponse = await axios.get(`${apiUrl}:${port}/temp`);
+            rainResponse = await axios.get(`${apiUrl}:${port}/rain`);
+        }
+        
 
         const labels = timeResponse.data.join(',');
         const data1 = tempResponse.data.join(',');
@@ -136,12 +146,25 @@ async function sendWeatherEmail() {
         }
     });
 
-    const tempResponse = await axios.get(`${apiUrl}/temp`);
-    const tempRes = tempResponse.data;
-    const windResponse = await axios.get(`${apiUrl}/rain`);
-    const windRes = windResponse.data;
-    const rainResponse = await axios.get(`${apiUrl}/rain`);
-    const rainRes = rainResponse.data;
+    let windResponse, tempResponse, rainResponse, tempRes, windRes, rainRes;
+    if (process.env.NODE_ENV === 'production') {
+        tempResponse = await axios.get(`${apiUrl}/temp`);
+        tempRes = tempResponse.data;
+        windResponse = await axios.get(`${apiUrl}/wind`);
+        windRes = windResponse.data;
+        rainResponse = await axios.get(`${apiUrl}/rain`);
+        rainRes = rainResponse.data;
+    } else {
+        // Axios API calls
+        tempResponse = await axios.get(`${apiUrl}:${port}/temp`);
+        tempRes = tempResponse.data;
+        windResponse = await axios.get(`${apiUrl}:${port}/wind`);
+        windRes = windResponse.data;
+        rainResponse = await axios.get(`${apiUrl}:${port}/rain`);
+        rainRes = rainResponse.data;
+    }
+    
+    
 
 
     //Creating my HTML sendout variables:
@@ -152,30 +175,32 @@ async function sendWeatherEmail() {
     const windSpeedMax = Math.max(...windRes); 
 
     const totalRainfall = rainRes.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+    let todaysDate = await getCurrentDate();
 
     // Email options
     let mailOptions = {
         from: process.env.GMAIL_USER,
-        to: 'axel.k.ingo@gmail.com; stina.sollander@gmail.com',
-        subject: 'Today\'s Weather Briefing',
+        to: 'axel.k.ingo@gmail.com',
+        cc: 'stina.sollander@gmail.com',
+        subject: `Today\'s Weather Briefing - ${todaysDate}`,
         html: `
         <html>
             <head>
-                <title>Email Title</title>
+                <title>Your daily weather briefing</title>
             </head>
             <body>
                 <table width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#eeeeee;">
                     <tr colspan="3">
-                        <td align="center" valign="top">
-                            <h1 style="color: #333333;">Weather Report</h1>
+                        <td align="center" valign="top" width="100%">
+                            <h1 style="color: #333333;" text-align:"center";>Weather Report for the next 18h</h1>
                         </td>
                     </tr>
                     <tr>
                         <!-- Temperature Range Column -->
                         <td width="33%" align="center" valign="top">
                         <h2>Temperature Range</h2>
-                        <p style="color: blue;">Min: ${tempMin}°C</p>
-                        <p style="color: red;">Max: ${tempMax}°C</p>
+                        <p style="color: #0000d8;">Min: ${tempMin}°C</p>
+                        <p style="color: #ff0000;">Max: ${tempMax}°C</p>
                     </td>
 
                         <!-- Wind and Direction Column -->
@@ -302,7 +327,8 @@ app.get('/weatherdata', (req, res) => {
     });
 });
 
-app.get('/weather', (req, res) => {
+app.get('/weather', async (req, res) => {
+    let promiseCheck = await weatherData;
     res.json({
         time: times_Array,
         temperature: temperature_Array,
@@ -337,18 +363,18 @@ app.get('/rain', (req, res) => {
     res.json(rain_Array);
 });
 
-
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
+app.get('/send', async (req, res) => {
+    try {
+        await sendWeatherEmail();
+        res.send("Email sent successfully");
+    } catch (error) {
+        console.error('Error sending email:', error);
+        res.status(500).send('Error sending email');
+    }
+});
 
 // Express server setup
 app.listen(port, async() => {
-    console.log(`Server is running on http://localhost:${port}`);
-    try {
-        sleep(1500).then(() => {sendWeatherEmail(temperature_Array,rain_Array)}); // Ensure this function is defined as async
-    } catch (error) {
-        console.error('Error sending email:', error);
-    }
+    console.log(`Server is running on ${apiUrl}:${port}`);
 });
 
