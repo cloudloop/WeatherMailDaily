@@ -23,7 +23,7 @@ const defaultLat = 59.3293;
 const defaultLon = 18.0686;
 
 // Weather fetching function for coordinates
-async function fetchWeatherData(lat = 63, lon = 10) {
+async function fetchWeatherData(lat = defaultLat, lon = defaultLon) {
     try {
         const response = await axios.get(`https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${lat}&lon=${lon}`, {
             headers: {
@@ -190,8 +190,8 @@ async function sendWeatherEmail() {
             </head>
             <body>
                 <table width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#eeeeee;">
-                    <tr colspan="3">
-                        <td align="center" valign="top" width="100%">
+                    <tr>
+                        <td colspan="3" align="center" valign="top" width="100%">
                             <h1 style="color: #333333;" text-align:"center";>Weather Report for the next 18h</h1>
                         </td>
                     </tr>
