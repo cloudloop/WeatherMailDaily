@@ -11,6 +11,8 @@ const chroma = require("chroma-js");
 const app = express();
 const port = parseInt(process.env.PORT) || 8080;
 const apiUrl = process.env.API_URL || 'http://localhost';
+
+
 require('dotenv').config();
 //Supress the https warning
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -79,7 +81,6 @@ async function hexToRgba(hex, alpha = 0.2) {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-
 async function createChartUrl() {
     try {
         let timeResponse, tempResponse, rainResponse;
@@ -136,7 +137,8 @@ async function saveChartImage() {
 // Function to send email
 async function sendWeatherEmail() {
 
-    await saveChartImage();
+    const chartUrl = await createChartUrl();
+    console.log(`${chartUrl}`);
     // Create a Nodemailer transporter using Gmail and environment variables
     let transporter = nodemailer.createTransport({
         service: 'gmail',
@@ -177,11 +179,21 @@ async function sendWeatherEmail() {
     const totalRainfall = rainRes.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
     let todaysDate = await getCurrentDate();
 
+    let emailTo, emailCc;
+
+    if (process.env.NODE_ENV === 'production') {
+        emailTo = 'marcus.lilliebjorn@outlook.com';
+        emailCc = 'axel.k.ingo@gmail.com';
+    } else {
+        emailTo = 'axel.k.ingo@gmail.com';
+        emailCc = '';
+    }
+    
     // Email options
     let mailOptions = {
         from: process.env.GMAIL_USER,
-        to: 'marcus.lilliebjorn@outlook.com',
-        cc: 'axel.k.ingo@gmail.com',
+        to: emailTo,
+        cc: emailCc,
         subject: `Today\'s Weather Briefing - ${todaysDate}`,
         html: `
         <html>
@@ -218,18 +230,13 @@ async function sendWeatherEmail() {
                     <tr>
                         <!-- Full Width Image Row -->
                         <td colspan="3">
-                            <img src="cid:unique@cid.example.com" style="width: 100%;">
+                            <img src="${chartUrl}" style="width: 100%;">
                         </td>
                     </tr>
                 </table>
             </body>
         </html>
-    `,
-    attachments: [{
-        filename: 'graph.jpeg',
-        path: './images/myDynamicChart.png',
-        cid: 'unique@cid.example.com' // Same CID value as in the html field
-    }]  // You can format weatherData to be displayed as needed
+    `
     };
 
     // Send the email

@@ -1,0 +1,40 @@
+<html>
+            <head>
+                <title>Your daily weather briefing</title>
+            </head>
+            <body>
+                <table width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#eeeeee;">
+                    <tr>
+                        <td colspan="3" align="center" valign="top" width="100%">
+                            <h1 style="color: #333333;" text-align:"center";>Weather Report for the next 18h</h1>
+                        </td>
+                    </tr>
+                    <tr>
+                        <!-- Temperature Range Column -->
+                        <td width="33%" align="center" valign="top">
+                        <h2>Temperature Range</h2>
+                        <p style="color: #0000d8;">Min: ${tempMin}°C</p>
+                        <p style="color: #ff0000;">Max: ${tempMax}°C</p>
+                    </td>
+
+                        <!-- Wind and Direction Column -->
+                        <td width="33%" align="center" valign="top">
+                            <h2>Wind</h2>
+                            <p>${windSpeedMin}-${windSpeedMax} m/s°</p>
+                        </td>
+
+                        <!-- Rain Column -->
+                        <td width="33%" align="center" valign="top">
+                            <h2>Rain</h2>
+                            <p>${totalRainfall} mm</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <!-- Full Width Image Row -->
+                        <td colspan="3">
+                            <img src="${chartUrl}" style="width: 100%;">
+                        </td>
+                    </tr>
+                </table>
+            </body>
+        </html>
